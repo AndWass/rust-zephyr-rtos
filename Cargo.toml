@@ -1,0 +1,20 @@
+[package]
+name = "zephyr"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+heapless = "0.8"
+
+[build-dependencies]
+bindgen = { version="0.69", features = ["experimental"]}
+json = "0.12"
+
+[profile.dev]
+panic="abort"
+
+[profile.release]
+panic="abort"
