@@ -6,9 +6,9 @@
 #[doc(hidden)]
 pub mod bindings;
 
+pub mod print;
 pub mod sync;
 pub mod time;
-pub mod print;
 
 #[doc(hidden)]
 pub mod macros;

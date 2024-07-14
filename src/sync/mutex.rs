@@ -1,17 +1,17 @@
-use crate::bindings::{k_mutex_lock, k_mutex_unlock, k_mutex_init};
+use crate::bindings::{k_mutex_init, k_mutex_lock, k_mutex_unlock};
 
-use core::marker::PhantomData;
 use core::cell::UnsafeCell;
+use core::marker::PhantomData;
 use core::ops::{Deref, DerefMut};
 
 /// Struct representing a zephyr mutex.
-/// 
+///
 /// This is a very thin wrapper around a `k_mutex`.
 #[repr(C)]
 pub struct KMutex {
     /// For private use only. Touching this outside documented ways
     /// results in undefined behaviour.
-    /// 
+    ///
     /// TODO: Explore how this could be made into an UnsafeCell.
     #[doc(hidden)]
     pub __priv: crate::bindings::k_mutex,
@@ -29,31 +29,30 @@ impl KMutex {
     }
 
     /// Create a new `KMutex`
-    /// 
+    ///
     /// Prefer to use the macro [`k_mutex_define`] to define a static mutex instead.
-    /// 
+    ///
     /// [`k_mutex_define`]: crate::k_mutex_define
-    /// 
+    ///
     /// [`KMutex::init`] must be called before this can be used.
     pub fn new() -> Self {
         Self {
-            __priv: unsafe { core::mem::zeroed() }
+            __priv: unsafe { core::mem::zeroed() },
         }
     }
 
-    /// Initialize the KMutex, making it ready to use.
-    /// 
-    /// If the mutex was created with [`k_mutex_define`].
+    /// Initialize the [`KMutex`], making it ready to use.
+    ///
     /// Only needs to be called on mutexes created via [`KMutex::new`].
-    /// 
+    ///
     /// [`k_mutex_define`]: crate::k_mutex_define
-    /// 
+    ///
     /// # Safety
-    /// 
+    ///
     ///   * After `init` the mutex must not be moved, it must be treated as if pinned.
-    /// 
+    ///
     /// # Panic
-    /// 
+    ///
     /// Panics if the call to `k_mutex_init` fails.
     pub unsafe fn init(&mut self) {
         let res = unsafe { k_mutex_init(&mut self.__priv) };
@@ -63,15 +62,15 @@ impl KMutex {
     }
 
     /// Lock the mutex
-    /// 
+    ///
     /// # Safety
-    /// 
+    ///
     ///   * If the mutex is created via [`KMutex::new`] then [`KMutex::init`] must be called first
-    /// 
+    ///
     /// # Returns
-    /// 
+    ///
     /// A lock guard that will automatically unlock the mutex on drop.
-    /// 
+    ///
     pub unsafe fn lock(&self, timeout: crate::time::Timeout) -> Result<KMutexGuard, i32> {
         let res = k_mutex_lock(self.k_mutex_ptr(), timeout);
         if res == 0 {
@@ -79,8 +78,7 @@ impl KMutex {
                 mutex: self,
                 _ph: PhantomData,
             })
-        }
-        else {
+        } else {
             Err(res)
         }
     }
@@ -90,7 +88,7 @@ unsafe impl Send for KMutex {}
 unsafe impl Sync for KMutex {}
 
 /// Statically initialize [`KMutex`] instances.
-/// 
+///
 /// This is the preferred method for creating [`KMutex`] instances.
 /// This statically initializes the mutex, and ensures it is ready for use immediately.
 #[macro_export]
@@ -110,7 +108,7 @@ macro_rules! k_mutex_define {
 }
 
 /// Drop guard for a [`KMutex`]
-/// 
+///
 /// The referenced [`KMutex`] will automatically unlock on drop.
 pub struct KMutexGuard<'a> {
     mutex: &'a KMutex,
@@ -127,58 +125,41 @@ impl<'a> Drop for KMutexGuard<'a> {
 }
 
 /// A `std::sync::Mutex` like object utilizing a [`KMutex`] as the mutex primitive.
-pub struct Mutex<T>
-{
+pub struct Mutex<T> {
     mutex: *const KMutex,
     data: UnsafeCell<T>,
 }
 
 impl<T> Mutex<T> {
     fn zephyr_mutex_ref(&self) -> &KMutex {
-        unsafe {
-            &*self.mutex
-        }
+        unsafe { &*self.mutex }
     }
-    /// Create a new mutex that uses a static [`KMutex`] as the backing mutex.
-    /// 
-    /// This is the preferred method of creation since it is guaranteed that the
-    /// references [`KMutex`] outlives any usage of [`Mutex`].
-    /// 
-    /// Note that it isn't an error to use the same [`KMutex`] as a primitive for multiple
-    /// different [`Mutex`] instances, potentially protecting different types of data. It
-    /// could howerver impact performance.
-    pub const fn new(mutex: &'static KMutex, data: T) -> Self {
+
+    /// Create a new mutex from a [`KMutex`] reference.
+    ///
+    /// # Safety
+    ///
+    ///   * `k_mutex` must be fully initialized, such that `mutex.lock()` is valid. See [`KMutex::lock`].
+    ///   * `k_mutex` must outlive the created mutex.
+    ///   * `k_mutex` must not be moved to a different location.
+    ///
+    pub const unsafe fn new_unchecked(k_mutex: &KMutex, data: T) -> Self {
         Self {
-            mutex,
+            mutex: k_mutex,
             data: UnsafeCell::new(data),
         }
     }
 
-    /// Create a new mutex from any [`KMutex`] reference.
-    /// 
-    /// # Safety
-    /// 
-    ///   * `k_mutex` must be fully initialized, such that `mutex.lock()` is valid. See [`KMutex::lock`].
-    ///   * `k_mutex` must outlive the created mutex.
-    ///   * `k_mutex` must not be moved to a different location.
-    /// 
-    pub unsafe fn new_unchecked(k_mutex: &KMutex, data: T) -> Self {
-        Self {
-            mutex: k_mutex,
-            data: UnsafeCell::new(data)
-        }
-    }
-
     /// Lock the [`Mutex`], returning a [`MutexGuard`].
-    /// 
+    ///
     /// This method will block and not return until the mutex has been acquired.
-    /// 
+    ///
     /// # Panic
-    /// 
+    ///
     /// Panics if the [`KMutex`] fails to lock for some reason.
     pub fn lock(&self) -> MutexGuard<T> {
         // SAFETY:
-        // The `new` methods requires the `KMutex` to be initialized. 
+        // The `new_unchecked` method requires the `KMutex` to be initialized.
         let z_guard = unsafe { self.zephyr_mutex_ref().lock(crate::time::K_FOREVER) }.unwrap();
 
         MutexGuard {
@@ -189,11 +170,11 @@ impl<T> Mutex<T> {
     }
 
     /// Try to lock the [`Mutex`], returning a [`MutexGuard`] if successful.
-    /// 
+    ///
     /// This method will never block.
     pub fn try_lock(&self) -> Option<MutexGuard<T>> {
         // SAFETY:
-        // The `new` methods requires the `KMutex` to be initialized. 
+        // The `new_unchecked` method requires the `KMutex` to be initialized.
         let z_guard = unsafe { self.zephyr_mutex_ref().lock(crate::time::K_NO_WAIT) }.ok()?;
 
         Some(MutexGuard {
@@ -202,8 +183,6 @@ impl<T> Mutex<T> {
             _ph: PhantomData,
         })
     }
-
-
 }
 
 unsafe impl<T: Send> Send for Mutex<T> {}
@@ -234,7 +213,7 @@ impl<'a, T> DerefMut for MutexGuard<'a, T> {
 }
 
 /// Statically initialize [`Mutex`] instances.
-/// 
+///
 /// This is the preferred method for creating [`Mutex`] instances.
 /// This statically initializes the mutex, and ensures it is ready for use immediately.
 #[macro_export]
@@ -243,6 +222,6 @@ macro_rules! mutex_define {
         mod __zmutex_backer {
             $crate::k_mutex_define!($name pub(super));
         }
-        static $name: $crate::sync::Mutex<$typ> = $crate::sync::Mutex::new(&__zmutex_backer::$name, $init);
+        static $name: $crate::sync::Mutex<$typ> = unsafe { $crate::sync::Mutex::new_unchecked(&__zmutex_backer::$name, $init) };
     };
 }

@@ -1,3 +1,5 @@
 pub mod mutex;
+pub mod semaphore;
 
-pub use mutex::{Mutex, MutexGuard, KMutex, KMutexGuard};
+pub use mutex::{KMutex, KMutexGuard, Mutex, MutexGuard};
+pub use semaphore::{KSemaphore, Semaphore};

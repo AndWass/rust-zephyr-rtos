@@ -10,8 +10,7 @@ pub fn printk(data: &str) {
         if left_to_print.len() < BUF_SIZE - 1 {
             let _ = buf.extend_from_slice(left_to_print);
             left_to_print = &[];
-        }
-        else {
+        } else {
             let _ = buf.extend_from_slice(&left_to_print[0..32]);
             left_to_print = &left_to_print[32..];
         }
