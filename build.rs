@@ -4,27 +4,31 @@ use std::env;
 use std::path::{Path, PathBuf};
 
 fn flag_filter(input: &&str) -> bool {
-    input.starts_with("-D") || input.starts_with("-I")
-    || input.starts_with("-mcpu") || input.starts_with("-mthumb") || input.starts_with("--sysroot")
-    || input.starts_with("-mabi")
+    input.starts_with("-D")
+        || input.starts_with("-I")
+        || input.starts_with("-mcpu")
+        || input.starts_with("-mthumb")
+        || input.starts_with("--sysroot")
+        || input.starts_with("-mabi")
 }
 
 fn build_bridge(cmd: &str) {
     let mut skip_next = false;
-    let filtered: Vec<_> = cmd.split(' ').filter(|x| {
-        if skip_next {
-            skip_next = false;
-            false
-        }
-        else if *x == "-c" || *x == "-o" {
-            skip_next = true;
-            false
-        }
-        else {
-            skip_next = false;
-            true
-        }
-    }).collect();
+    let filtered: Vec<_> = cmd
+        .split(' ')
+        .filter(|x| {
+            if skip_next {
+                skip_next = false;
+                false
+            } else if *x == "-c" || *x == "-o" {
+                skip_next = true;
+                false
+            } else {
+                skip_next = false;
+                true
+            }
+        })
+        .collect();
     let cmd = filtered[0];
     let args = filtered.iter().skip(1);
 }
@@ -32,7 +36,6 @@ fn build_bridge(cmd: &str) {
 fn main() {
     // Tell cargo to invalidate the built crate whenever the wrapper changes
     let out_dir = env::var_os("OUT_DIR").unwrap();
-
 
     println!("cargo::rerun-if-changed=wrapper.h");
     let compile_commands =
