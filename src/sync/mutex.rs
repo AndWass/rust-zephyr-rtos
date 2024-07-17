@@ -9,23 +9,40 @@ use core::ops::{Deref, DerefMut};
 /// This is a very thin wrapper around a `k_mutex`.
 #[repr(C)]
 pub struct KMutex {
-    /// For private use only. Touching this outside documented ways
-    /// results in undefined behaviour.
-    ///
-    /// TODO: Explore how this could be made into an UnsafeCell.
-    #[doc(hidden)]
-    pub __priv: crate::bindings::k_mutex,
+    mutex: crate::bindings::k_mutex,
 }
 
 impl KMutex {
     fn k_mutex_ptr(&self) -> *mut crate::bindings::k_mutex {
-        &self.__priv as *const _ as *mut _
+        &self.mutex as *const _ as *mut _
     }
 
     // Safety requirements:
     // Lock must be held and must be called from the same thread that holds the lock.
     unsafe fn unlock(&self) {
         k_mutex_unlock(self.k_mutex_ptr());
+    }
+
+    /// Create a new static `KMutex`.
+    ///
+    /// `this` must refer to a `static` KMutex instance that the return value is assigned to.
+    ///
+    /// # Safety
+    ///
+    /// **Do not use directly**
+    ///
+    ///   * Should not be used by user code. Use [`k_mutex_define`] instead!
+    ///   * Must only be used on the following form: `static MUTEX: KMutex = unsafe { KMutex::new_static(&MUTEX) };`
+    ///
+    pub const unsafe fn new_static(this: &'static Self) -> Self {
+        Self {
+            mutex: crate::bindings::k_mutex {
+                wait_q: crate::macros::__init_wait_q_t!(this.mutex.wait_q),
+                owner: core::ptr::null_mut(),
+                lock_count: 0,
+                owner_orig_prio: crate::bindings::K_LOWEST_APPLICATION_THREAD_PRIO as i32,
+            },
+        }
     }
 
     /// Create a new `KMutex`
@@ -37,7 +54,7 @@ impl KMutex {
     /// [`KMutex::init`] must be called before this can be used.
     pub fn new() -> Self {
         Self {
-            __priv: unsafe { core::mem::zeroed() },
+            mutex: unsafe { core::mem::zeroed() },
         }
     }
 
@@ -55,7 +72,7 @@ impl KMutex {
     ///
     /// Panics if the call to `k_mutex_init` fails.
     pub unsafe fn init(&mut self) {
-        let res = unsafe { k_mutex_init(&mut self.__priv) };
+        let res = unsafe { k_mutex_init(&mut self.mutex) };
         if res != 0 {
             panic!("k_mutex_init failed: {}", res);
         }
@@ -96,14 +113,7 @@ macro_rules! k_mutex_define {
     ($name:ident $($vis:tt)*) => {
         #[used]
         #[link_section = "._k_mutex.static.__rust"]
-        $($vis)* static $name: $crate::sync::KMutex = $crate::sync::KMutex {
-            __priv: $crate::bindings::k_mutex {
-                wait_q: $crate::__init_wait_q_t!($name.__priv.wait_q),
-                owner: core::ptr::null_mut(),
-                lock_count: 0,
-                owner_orig_prio: $crate::bindings::K_LOWEST_APPLICATION_THREAD_PRIO as i32
-            }
-        };
+        $($vis)* static $name: $crate::sync::KMutex = unsafe { $crate::sync::KMutex::new_static(&$name) };
     };
 }
 

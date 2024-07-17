@@ -1,5 +1,4 @@
 #![no_std]
-
 #![allow(non_camel_case_types)]
 #![allow(non_upper_case_globals)]
 #![allow(non_snake_case)]
@@ -10,8 +9,7 @@ pub mod print;
 pub mod sync;
 pub mod time;
 
-#[doc(hidden)]
-pub mod macros;
+pub(crate) mod macros;
 
 mutex_define!(COUNT: i32 = 0);
 

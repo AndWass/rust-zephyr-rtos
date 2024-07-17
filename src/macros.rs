@@ -1,5 +1,3 @@
-#[doc(hidden)]
-#[macro_export]
 macro_rules! __init_dnode {
     ($($init:tt)+) => {
         $crate::bindings::_dnode {
@@ -13,12 +11,13 @@ macro_rules! __init_dnode {
     }
 }
 
-#[doc(hidden)]
-#[macro_export]
 macro_rules! __init_wait_q_t {
     ($($init:tt)+) => {
         $crate::bindings::_wait_q_t {
-            waitq: $crate::__init_dnode!($($init)+.waitq),
+            waitq: $crate::macros::__init_dnode!($($init)+.waitq),
         }
     }
 }
+
+pub(crate) use __init_dnode;
+pub(crate) use __init_wait_q_t;

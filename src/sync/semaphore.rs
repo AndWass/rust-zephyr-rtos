@@ -1,16 +1,11 @@
 #[repr(C)]
 pub struct KSemaphore {
-    /// For private use only. Touching this outside documented ways
-    /// results in undefined behaviour.
-    ///
-    /// TODO: Explore how this could be made into an UnsafeCell.
-    #[doc(hidden)]
-    pub __priv: crate::bindings::k_sem,
+    k_sem: crate::bindings::k_sem,
 }
 
 impl KSemaphore {
     fn k_sem_ptr(&self) -> *mut crate::bindings::k_sem {
-        &self.__priv as *const _ as *mut _
+        &self.k_sem as *const _ as *mut _
     }
 
     /// Create a new [`KSemaphore`]
@@ -24,7 +19,29 @@ impl KSemaphore {
     ///
     pub fn new() -> Self {
         Self {
-            __priv: unsafe { core::mem::zeroed() },
+            k_sem: unsafe { core::mem::zeroed() },
+        }
+    }
+
+    /// Create a new static `KSemaphore`.
+    ///
+    /// `this` must refer to a `static KSemaphore` instance that the return value is assigned to.
+    ///
+    /// # Safety
+    ///
+    /// **Do not use directly**
+    ///
+    ///   * Should not be used by user code. Use [`k_sem_define`] instead!
+    ///   * Must only be used on the following form: `static SEM: KSemaphore = unsafe { KSemaphore::new_static(&SEM) };`
+    ///
+    pub const unsafe fn new_static(this: &'static Self, count: u32, limit: u32) -> Self {
+        assert!(limit != 0 && count <= limit, "Invalid semaphore limits");
+        Self {
+            k_sem: crate::bindings::k_sem {
+                wait_q: crate::macros::__init_wait_q_t!(this.k_sem.wait_q),
+                count: count,
+                limit: limit,
+            },
         }
     }
 
@@ -107,15 +124,7 @@ macro_rules! k_sem_define {
     ($name:ident, $count:literal, $limit:literal $($vis:tt)*) => {
         #[used]
         #[link_section = "._k_sem.static.__rust"]
-        $($vis)* static $name: $crate::sync::KSemaphore = $crate::sync::KSemaphore {
-            __priv: $crate::bindings::k_sem {
-                wait_q: $crate::__init_wait_q_t!($name.__priv.wait_q),
-                count: $count,
-                limit: $limit,
-            }
-        };
-
-        const _: () = assert!($limit != 0 && $count <= $limit && $limit <= u32::MAX, "Invalid semaphore limits");
+        $($vis)* static $name: $crate::sync::KSemaphore = unsafe { $crate::sync::KSemaphore::new_static(&$name, $count, $limit) };
     };
 }
 
