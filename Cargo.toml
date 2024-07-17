@@ -12,6 +12,7 @@ heapless = "0.8"
 [build-dependencies]
 bindgen = { version="0.69", features = ["experimental"]}
 json = "0.12"
+cc = "1"
 
 [profile.dev]
 panic="abort"

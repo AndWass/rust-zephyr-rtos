@@ -1,7 +1,8 @@
 extern crate bindgen;
 
 use std::env;
-use std::path::{Path, PathBuf};
+use std::ffi::OsStr;
+use std::path::Path;
 
 fn flag_filter(input: &&str) -> bool {
     input.starts_with("-D")
@@ -12,25 +13,34 @@ fn flag_filter(input: &&str) -> bool {
         || input.starts_with("-mabi")
 }
 
-fn build_bridge(cmd: &str) {
-    let mut skip_next = false;
+fn build_bridge(cmd: &str, out_dir: &OsStr) {
+    let mut filter_next = false;
     let filtered: Vec<_> = cmd
         .split(' ')
         .filter(|x| {
-            if skip_next {
-                skip_next = false;
+            if filter_next {
+                filter_next = false;
                 false
             } else if *x == "-c" || *x == "-o" {
-                skip_next = true;
+                filter_next = true;
                 false
             } else {
-                skip_next = false;
+                filter_next = false;
                 true
             }
         })
         .collect();
     let cmd = filtered[0];
+    std::fs::copy("wrapper.h", Path::new(out_dir).join("wrapper.h")).unwrap();
     let args = filtered.iter().skip(1);
+    let mut compiler = cc::Build::new();
+    compiler.compiler(cmd);
+    compiler.no_default_flags(true);
+    for arg in args {
+        compiler.flag(&arg);
+    }
+    compiler.file(Path::new(&out_dir).join("bridge.c"));
+    compiler.compile("zephyr_rust_bridge");
 }
 
 fn main() {
@@ -59,9 +69,15 @@ fn main() {
         .generate()
         .expect("Unable to generate bindings");
 
-    let out_path = Path::new(&out_dir).join("bindings.rs");
+    //let out_path = Path::new(&out_dir).join("bindings.rs");
+    let out_path = "src/bindings.rs";
 
     bindings
         .write_to_file(out_path)
         .expect("Couldn't write bindings!");
+
+    build_bridge(
+        compile_commands[0]["command"].as_str().unwrap(),
+        out_dir.as_os_str(),
+    );
 }
