@@ -1,5 +1,6 @@
 use crate::bindings::printk as z_printk;
 
+/// Print an arbitrary string using the Zephyr `printk` function.
 pub fn printk(data: &str) {
     const BUF_SIZE: usize = 33;
     let mut buf = heapless::Vec::<u8, BUF_SIZE>::new();
@@ -16,13 +17,18 @@ pub fn printk(data: &str) {
         }
 
         let _ = buf.push(0);
-        unsafe { z_printk(b"%s\0".as_ptr() as *const core::ffi::c_char, buf.as_ptr()) };
+        unsafe { z_printk(c"%s".as_ptr(), buf.as_ptr()) };
     }
 }
 
-pub struct Writer;
+/// An empty struct that is used to write data using [`printk`]
+/// 
+/// The only usage of this is by implementing the `Write` trait,
+/// writing all data with [`printk`].
+/// 
+pub struct PrintKWriter;
 
-impl core::fmt::Write for Writer {
+impl core::fmt::Write for PrintKWriter {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         printk(s);
         Ok(())

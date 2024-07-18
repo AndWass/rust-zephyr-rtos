@@ -22,7 +22,7 @@ macro_rules! printk {
     ($($arg:tt)*) => {
         {
             use core::fmt::Write;
-            let mut __printk_writer = $crate::print::Writer;
+            let mut __printk_writer = $crate::print::PrintKWriter;
             let _ = core::write!(__printk_writer, $($arg)*);
         }
     };
