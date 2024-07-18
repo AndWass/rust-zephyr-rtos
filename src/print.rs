@@ -22,10 +22,10 @@ pub fn printk(data: &str) {
 }
 
 /// An empty struct that is used to write data using [`printk`]
-/// 
+///
 /// The only usage of this is by implementing the `Write` trait,
 /// writing all data with [`printk`].
-/// 
+///
 pub struct PrintKWriter;
 
 impl core::fmt::Write for PrintKWriter {
