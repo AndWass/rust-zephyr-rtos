@@ -8,9 +8,12 @@ const fn stack_align() -> usize {
     }
 }
 
-const STACK_ALIGN: usize = stack_align();
+pub const STACK_ALIGN: usize = stack_align();
 pub const STACK_RESERVED: usize = crate::bindings::ARCH_KERNEL_STACK_RESERVED as usize;
 
+/// Represents a stack for thread usage.
+///
+///
 #[repr(C)]
 pub struct ThreadStack<const SIZE: usize> {
     _data: [crate::bindings::z_thread_stack_element; SIZE],
