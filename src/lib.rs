@@ -44,18 +44,13 @@ extern "C" fn test_thread_main(
     _: *mut core::ffi::c_void,
     _: *mut core::ffi::c_void,
 ) {
-    let name = unsafe {
-        let current = crate::bindings::k_current_get();
-        let name = crate::bindings::k_thread_name_get(current);
-        if name.is_null() {
-            "<NULL>"
-        } else {
-            core::ffi::CStr::from_ptr(name)
-                .to_str()
-                .unwrap_or("<INVALID>")
-        }
-    };
+    let name = rust_test_thread
+        .name()
+        .unwrap_or(c"<NULL>")
+        .to_str()
+        .unwrap_or("<INVALID>");
     use crate::printk;
+
     loop {
         let mut count = COUNT.lock();
         *count += 1;
@@ -65,7 +60,7 @@ extern "C" fn test_thread_main(
     }
 }
 
-thread_define!(rust_test_thread, 2048, test_thread_main);
+thread_define!(rust_test_thread, 2048, crate::test_thread_main);
 
 #[cfg(not(test))]
 mod not_test {
