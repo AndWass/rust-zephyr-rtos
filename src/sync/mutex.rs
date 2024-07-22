@@ -229,9 +229,11 @@ impl<'a, T> DerefMut for MutexGuard<'a, T> {
 #[macro_export]
 macro_rules! mutex_define {
     ($name:ident: $typ:ty = $init:expr) => {
-        mod __zmutex_backer {
-            $crate::k_mutex_define!($name pub(super));
-        }
-        static $name: $crate::sync::Mutex<$typ> = unsafe { $crate::sync::Mutex::new_unchecked(&__zmutex_backer::$name, $init) };
+        concat_idents::concat_idents!(mod_name = __zephyr_mutex_, $name {
+            mod mod_name {
+                $crate::k_mutex_define!($name pub(super));
+            }
+            static $name: $crate::sync::Mutex<$typ> = unsafe { $crate::sync::Mutex::new_unchecked(&mod_name::$name, $init) };
+        });
     };
 }

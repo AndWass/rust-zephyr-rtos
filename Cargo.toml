@@ -9,6 +9,7 @@ crate-type = ["staticlib"]
 [dependencies]
 heapless = "0.8"
 elain="0.3"
+concat-idents = "1.1.5"
 
 [build-dependencies]
 bindgen = { version="0.69", features = ["experimental"]}

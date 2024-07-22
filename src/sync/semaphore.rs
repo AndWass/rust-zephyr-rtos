@@ -192,9 +192,11 @@ unsafe impl Sync for Semaphore {}
 #[macro_export]
 macro_rules! semaphore_define {
     ($name:ident, $count:literal, $limit:literal) => {
-        mod __zsemaphore_backer {
-            $crate::k_sem_define!($name, $count, $limit pub(super));
-        }
-        static $name: $crate::sync::Semaphore = unsafe { $crate::sync::Semaphore::new_unchecked(&__zsemaphore_backer::$name) };
+        concat_idents::concat_idents!(mod_name = __zephyr_sem_, $name {
+            mod mod_name {
+                $crate::k_sem_define!($name, $count, $limit pub(super));
+            }
+            static $name: $crate::sync::Semaphore = unsafe { $crate::sync::Semaphore::new_unchecked(&mod_name::$name) };
+        });
     };
 }

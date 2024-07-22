@@ -166,8 +166,8 @@ unsafe impl<'a> Sync for Thread<'a> {}
 #[macro_export]
 macro_rules! thread_define {
     ($name:ident, $stack:literal, $entry:path) => {
-        mod __thread {
-            pub(super) mod $name {
+        concat_idents::concat_idents!(mod_name = __zephyr_thread_, $name {
+            pub mod mod_name {
                 #[used]
                 #[link_section = ".noinit.__rust.0"]
                 pub static STACK: crate::thread::ThreadStack<$stack> =
@@ -189,9 +189,9 @@ macro_rules! thread_define {
                     )
                 };
             }
-        }
-        #[used]
-        static $name: $crate::thread::Thread<'static> =
-            $crate::thread::Thread::new(&__thread::$name::THREAD_OBJ);
+            #[used]
+            static $name: $crate::thread::Thread<'static> =
+                $crate::thread::Thread::new(&mod_name::THREAD_OBJ);
+        });
     };
 }
