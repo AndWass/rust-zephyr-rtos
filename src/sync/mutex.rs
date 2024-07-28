@@ -125,6 +125,12 @@ pub struct KMutexGuard<'a> {
     _ph: PhantomData<*mut ()>,
 }
 
+impl<'a> KMutexGuard<'a> {
+    pub(in crate::sync) fn k_mutex_ptr(&self) -> *mut crate::bindings::k_mutex {
+        self.mutex.k_mutex_ptr()
+    }
+}
+
 impl<'a> Drop for KMutexGuard<'a> {
     fn drop(&mut self) {
         // SAFETY:
@@ -202,6 +208,20 @@ pub struct MutexGuard<'a, T> {
     mutex: &'a Mutex<T>,
     _drop_guard: KMutexGuard<'a>,
     _ph: PhantomData<*mut ()>,
+}
+
+impl<'a, T> MutexGuard<'a, T> {
+    pub(super) fn into_inner(self) -> (&'a Mutex<T>, KMutexGuard<'a>) {
+        (self.mutex, self._drop_guard)
+    }
+
+    pub(super) fn from_mutex_and_guard(mutex: &'a Mutex<T>, guard: KMutexGuard<'a>) -> Self {
+        Self {
+            mutex,
+            _drop_guard: guard,
+            _ph: PhantomData,
+        }
+    }
 }
 
 impl<'a, T> Deref for MutexGuard<'a, T> {
