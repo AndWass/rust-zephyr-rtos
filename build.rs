@@ -44,12 +44,16 @@ fn build_bridge(cmd: &str, out_dir: &OsStr) {
 }
 
 fn main() {
-    // Tell cargo to invalidate the built crate whenever the wrapper changes
     let out_dir = env::var_os("OUT_DIR").unwrap();
-
+    // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo::rerun-if-changed=wrapper.h");
-    let compile_commands =
-        json::parse(&std::fs::read_to_string(env::var("ZEPHYR_CC_DB").expect("ZEPHYR_CC_DB environment variable must be set")).unwrap()).unwrap();
+    let compile_commands = json::parse(
+        &std::fs::read_to_string(env::var("RUST_ZEPHYR_CC_DB").expect(
+            "RUST_ZEPHYR_CC_DB environment variable must be set to a compile_commands.json file",
+        ))
+        .unwrap(),
+    )
+    .unwrap();
     let args = compile_commands[0]["command"]
         .as_str()
         .unwrap()
@@ -69,8 +73,7 @@ fn main() {
         .generate()
         .expect("Unable to generate bindings");
 
-    //let out_path = Path::new(&out_dir).join("bindings.rs");
-    let out_path = "src/bindings.rs";
+    let out_path = Path::new(&out_dir).join("bindings.rs");
 
     bindings
         .write_to_file(out_path)
