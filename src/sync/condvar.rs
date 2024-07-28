@@ -203,7 +203,8 @@ unsafe impl Sync for Condvar {}
 #[macro_export]
 macro_rules! condvar_define {
     ($name:ident) => {
-        concat_idents::concat_idents!(mod_name = __zephyr_sem_, $name {
+        $crate::concat_idents!(mod_name = __zephyr_sem_, $name {
+            #[allow(non_snake_case)]
             mod mod_name {
                 $crate::k_condvar_define!($name, $count, $limit pub(super));
             }

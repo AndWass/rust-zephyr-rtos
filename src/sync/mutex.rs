@@ -249,7 +249,8 @@ impl<'a, T> DerefMut for MutexGuard<'a, T> {
 #[macro_export]
 macro_rules! mutex_define {
     ($name:ident: $typ:ty = $init:expr) => {
-        concat_idents::concat_idents!(mod_name = __zephyr_mutex_, $name {
+        $crate::concat_idents!(mod_name = __zephyr_mutex_, $name {
+            #[allow(non_snake_case)]
             mod mod_name {
                 $crate::k_mutex_define!($name pub(super));
             }

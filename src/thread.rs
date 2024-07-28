@@ -166,17 +166,18 @@ unsafe impl<'a> Sync for Thread<'a> {}
 #[macro_export]
 macro_rules! thread_define {
     ($name:ident, $stack:literal, $entry:path) => {
-        concat_idents::concat_idents!(mod_name = __zephyr_thread_, $name {
+        $crate::concat_idents!(mod_name = __zephyr_thread_, $name {
+            #[allow(non_snake_case)]
             pub mod mod_name {
                 #[used]
                 #[link_section = ".noinit.__rust.0"]
-                pub static STACK: crate::thread::ThreadStack<$stack> =
-                    crate::thread::ThreadStack::new();
-                pub static THREAD_OBJ: crate::thread::KThreadObj = crate::thread::KThreadObj::new();
+                pub static STACK: $crate::thread::ThreadStack<$stack> =
+                    $crate::thread::ThreadStack::new();
+                pub static THREAD_OBJ: $crate::thread::KThreadObj = $crate::thread::KThreadObj::new();
                 #[used]
                 #[link_section = ".__static_thread_data.static.__rust"]
-                pub static $name: crate::thread::KStaticThreadData = unsafe {
-                    crate::thread::KStaticThreadData::new(
+                pub static $name: $crate::thread::KStaticThreadData = unsafe {
+                    $crate::thread::KStaticThreadData::new(
                         &THREAD_OBJ,
                         &STACK,
                         $entry,
@@ -185,7 +186,7 @@ macro_rules! thread_define {
                         core::ffi::CStr::from_bytes_with_nul_unchecked(
                             concat!(stringify!($name), '\0').as_bytes(),
                         ),
-                        crate::time::K_NO_WAIT,
+                        $crate::time::K_NO_WAIT,
                     )
                 };
             }

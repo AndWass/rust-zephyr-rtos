@@ -30170,6 +30170,8 @@ pub const K_HIGHEST_APPLICATION_THREAD_PRIO: i32 = -16;
 pub const K_LOWEST_APPLICATION_THREAD_PRIO: u32 = 14;
 pub const K_POLL_TYPE_IGNORE: u32 = 0;
 pub const K_POLL_STATE_NOT_READY: u32 = 0;
+pub const SYS_REBOOT_WARM: u32 = 0;
+pub const SYS_REBOOT_COLD: u32 = 1;
 pub type wchar_t = ::core::ffi::c_uint;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -62811,6 +62813,10 @@ extern "C" {
         thread: *mut k_thread,
         options: ::core::ffi::c_uint,
     ) -> ::core::ffi::c_int;
+}
+extern "C" {
+    #[doc = " @brief Reboot the system\n\n Reboot the system in the manner specified by @a type.  Not all architectures\n or platforms support the various reboot types (SYS_REBOOT_COLD,\n SYS_REBOOT_WARM).\n\n When successful, this routine does not return."]
+    pub fn sys_reboot(type_: ::core::ffi::c_int) -> !;
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

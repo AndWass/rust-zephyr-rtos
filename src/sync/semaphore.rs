@@ -192,7 +192,8 @@ unsafe impl Sync for Semaphore {}
 #[macro_export]
 macro_rules! semaphore_define {
     ($name:ident, $count:literal, $limit:literal) => {
-        concat_idents::concat_idents!(mod_name = __zephyr_sem_, $name {
+        $crate::concat_idents!(mod_name = __zephyr_sem_, $name {
+            #[allow(non_snake_case)]
             mod mod_name {
                 $crate::k_sem_define!($name, $count, $limit pub(super));
             }

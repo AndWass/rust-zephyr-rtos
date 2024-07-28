@@ -1,10 +1,10 @@
 [package]
-name = "zephyr"
+name = "zephyr-rtos"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["staticlib"]
+crate-type = ["lib"]
 
 [dependencies]
 heapless = "0.8"

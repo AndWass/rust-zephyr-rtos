@@ -49,7 +49,7 @@ fn main() {
 
     println!("cargo::rerun-if-changed=wrapper.h");
     let compile_commands =
-        json::parse(&std::fs::read_to_string(env::var("ZEPHYR_CC_DB").unwrap()).unwrap()).unwrap();
+        json::parse(&std::fs::read_to_string(env::var("ZEPHYR_CC_DB").expect("ZEPHYR_CC_DB environment variable must be set")).unwrap()).unwrap();
     let args = compile_commands[0]["command"]
         .as_str()
         .unwrap()

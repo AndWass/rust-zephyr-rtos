@@ -34,3 +34,17 @@ impl core::fmt::Write for PrintKWriter {
         Ok(())
     }
 }
+
+/// `print` style macro but uses Zephyrs `printk` instead.
+#[macro_export]
+macro_rules! printk {
+    () => {
+    };
+    ($($arg:tt)*) => {
+        {
+            use core::fmt::Write;
+            let mut __printk_writer = $crate::print::PrintKWriter;
+            let _ = core::write!(__printk_writer, $($arg)*);
+        }
+    };
+}
