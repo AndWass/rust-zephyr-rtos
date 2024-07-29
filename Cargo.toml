@@ -2,6 +2,9 @@
 name = "zephyr-rtos"
 version = "0.1.0"
 edition = "2021"
+license = "MIT/Apache-2.0"
+repository = "https://github.com/AndWass/rust-zephyr-rtos"
+authors = ["andwass"]
 
 [lib]
 crate-type = ["lib"]
@@ -15,9 +18,3 @@ concat-idents = "1.1.5"
 bindgen = { version="0.69", features = ["experimental"]}
 json = "0.12"
 cc = "1"
-
-[profile.dev]
-panic="abort"
-
-[profile.release]
-panic="abort"
