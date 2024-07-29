@@ -53,7 +53,7 @@ name = "rust_hello"
 crate-type = ["staticlib"]
 
 [dependencies]
-zephyr-rtos = { git = "TODO" }
+zephyr-rtos = { git = "https://github.com/AndWass/rust-zephyr-rtos" }
 
 [profile.dev]
 panic="abort"
