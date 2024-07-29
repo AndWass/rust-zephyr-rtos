@@ -1,7 +1,7 @@
 extern crate bindgen;
 
 use std::env;
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::path::Path;
 
 fn flag_filter(input: &&str) -> bool {
@@ -39,21 +39,15 @@ fn build_bridge(cmd: &str, out_dir: &OsStr) {
     for arg in args {
         compiler.flag(&arg);
     }
+    compiler.flag("-DRUST_ZEPHYR_BUILD_BRIDGE")
+            .flag("-Wno-implicit-function-declaration")
+            .flag("-Wno-discarded-qualifiers");
+
     compiler.file(Path::new(&out_dir).join("bridge.c"));
     compiler.compile("zephyr_rust_bridge");
 }
 
-fn main() {
-    let out_dir = env::var_os("OUT_DIR").unwrap();
-    // Tell cargo to invalidate the built crate whenever the wrapper changes
-    println!("cargo::rerun-if-changed=wrapper.h");
-    let compile_commands = json::parse(
-        &std::fs::read_to_string(env::var("RUST_ZEPHYR_CC_DB").expect(
-            "RUST_ZEPHYR_CC_DB environment variable must be set to a compile_commands.json file",
-        ))
-        .unwrap(),
-    )
-    .unwrap();
+fn build_bindings(compile_commands: &json::JsonValue, out_dir: &OsString) {
     let args = compile_commands[0]["command"]
         .as_str()
         .unwrap()
@@ -69,16 +63,32 @@ fn main() {
         .detect_include_paths(true)
         .clang_args(args)
         .clang_arg("--target=arm-unknown-none-eabi")
+        .clang_arg("-Wno-discarded-qualifiers")
+        .clang_arg("-Wno-implicit-function-declaration")
         .header("wrapper.h")
         .generate()
         .expect("Unable to generate bindings");
 
     let out_path = Path::new(&out_dir).join("bindings.rs");
-
     bindings
         .write_to_file(out_path)
         .expect("Couldn't write bindings!");
+}
 
+fn main() {
+    let out_dir = env::var_os("OUT_DIR").unwrap();
+    // Tell cargo to invalidate the built crate whenever the wrapper changes
+    println!("cargo::rerun-if-changed=wrapper.h");
+
+    let compile_commands = json::parse(
+        &std::fs::read_to_string(env::var("RUST_ZEPHYR_CC_DB").expect(
+            "RUST_ZEPHYR_CC_DB environment variable must be set to a compile_commands.json file",
+        ))
+        .unwrap(),
+    )
+    .unwrap();
+    
+    build_bindings(&compile_commands, &out_dir);
     build_bridge(
         compile_commands[0]["command"].as_str().unwrap(),
         out_dir.as_os_str(),

@@ -196,3 +196,9 @@ macro_rules! thread_define {
         });
     };
 }
+
+pub fn sleep_ms(ms: i32) {
+    unsafe {
+        crate::bindings::k_msleep(ms);
+    }
+}
